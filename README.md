@@ -18,6 +18,7 @@ For using this plugin goal you need to add these lines into your benchmark proje
     <version>1.0-SNAPSHOT</version>
     <executions>
         <execution>
+            <id>Generate data</id>
             <phase>verify</phase>
             <goals>
                 <goal>data_saver</goal>
@@ -45,5 +46,22 @@ You can specify these options from command line with property identifier:
 
 ```{.sh}
 $ mvn clean install -Ddata_saver.revision_id=ver3
+```
+
+
+## SPL annotation goal
+
+This goal is used for distribution of _SPLFormula_ annotation for further processing. Default execution phase is _generate-sources_. SPLFormula.java file is copied to `target/generated-sources/spl_annotations/cz/cuni/mff/d3s/spl` directory. Compilation CLASSPATH is also altered.
+
+`pom.xml` snippet of benchmarking project:
+
+```{.xml}
+<execution>
+    <id>Provide SPL annotation</id>
+    <phase>generate-sources</phase>
+    <goals>
+        <goal>spl_annotation</goal>
+    </goals>
+</execution>
 ```
 
