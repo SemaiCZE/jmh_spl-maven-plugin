@@ -31,7 +31,15 @@ public class JMHDataSaver extends AbstractMojo {
 	@Parameter(property = "data_saver.additional_options", defaultValue = "")
 	private String additionalOpts = "";
 
+	@Parameter(property = "data_saver.skip", defaultValue = "false")
+	private boolean skip = false;
+
     public void execute() throws MojoExecutionException {
+	    if (skip) {
+		    getLog().info("Collecting data skipped by user configuration");
+		    return;
+	    }
+
 	    try {
 		    getLog().info("Collecting data from '" + jmhJar + "' to '" + resultPath +
 				    "' with revision '" + revisionID + "' ...");
