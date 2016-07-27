@@ -28,7 +28,7 @@ public class SPLFormulaGeneration extends AbstractMojo {
 	@Override
 	public void execute() throws MojoExecutionException, MojoFailureException {
 		getLog().info("Reading resource 'SPLFormula.java'");
-		InputStream SPLFormulaStream = this.getClass().getResourceAsStream("/SPLFormula.java");
+		InputStream SPLFormulaStream = this.getClass().getResourceAsStream("/SPLFormula.txt");
 
 		try {
 			File finalDir = new File(outputDirectory, "cz/cuni/mff/d3s/spl");
