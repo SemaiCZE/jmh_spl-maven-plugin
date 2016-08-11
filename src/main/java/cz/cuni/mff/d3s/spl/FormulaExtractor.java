@@ -23,9 +23,9 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.*;
 
-@Mojo(name = "formula_extractor", defaultPhase = LifecyclePhase.GENERATE_RESOURCES)
+@Mojo(name = "formula_extractor", defaultPhase = LifecyclePhase.COMPILE)
 public class FormulaExtractor extends AbstractMojo {
-	private String outputPath = "target/classes/META-INF/SPLFormulas";
+	private final String outputPath = "target/classes/META-INF/SPLFormulas";
 	private Map<String, String> formulas;
 	/**
 	 * Cache - for fully qualified class name is cached instance of Class class
@@ -34,8 +34,8 @@ public class FormulaExtractor extends AbstractMojo {
 	private Map<String, Map.Entry<Class<?>, String>> classCache;
 
 	public FormulaExtractor() {
-		formulas = new HashMap<String, String>();
-		classCache = new HashMap<String, Map.Entry<Class<?>, String>>();
+		formulas = new HashMap<>();
+		classCache = new HashMap<>();
 	}
 
 	@Override
@@ -49,12 +49,19 @@ public class FormulaExtractor extends AbstractMojo {
 		}
 	}
 
+	/**
+	 * Read SPL formulas from project sources (using some JMH API for getting
+	 * benchmarks).
+	 *
+	 * @throws ClassNotFoundException
+	 * @throws NoSuchMethodException
+	 */
 	private void getSPLFormulas() throws ClassNotFoundException, NoSuchMethodException {
-		Set<BenchmarkListEntry> benchmarks =
-				//BenchmarkList.defaultList().getAll(new NullOutputFormat(), new LinkedList<String>());
-				BenchmarkList.fromFile("target/classes/META-INF/BenchmarkList").getAll(new NullOutputFormat(), new LinkedList<String>());
+		Set<BenchmarkListEntry> benchmarks = BenchmarkList
+				.fromFile("target/classes/META-INF/BenchmarkList")
+				.getAll(new NullOutputFormat(), new LinkedList<>());
 
-		ClassLoader classLoader = getClassLoader();
+		ClassLoader alteredClassLoader = getClassLoader();
 
 		for (BenchmarkListEntry benchmark : benchmarks) {
 			// lookup to cache for class of this name
@@ -65,7 +72,7 @@ public class FormulaExtractor extends AbstractMojo {
 				benchmarkClass = classInfo.getKey();
 				classFormula = classInfo.getValue();
 			} else {
-				benchmarkClass = Class.forName(benchmark.getUserClassQName(), true, classLoader);
+				benchmarkClass = Class.forName(benchmark.getUserClassQName(), true, alteredClassLoader);
 				classFormula = null;
 				if (benchmarkClass.isAnnotationPresent(SPLFormula.class)) {
 					Annotation SPLAnnotation = benchmarkClass.getAnnotation(SPLFormula.class);
@@ -73,7 +80,7 @@ public class FormulaExtractor extends AbstractMojo {
 					classFormula = formula.value();
 				}
 				classCache.put(benchmark.getUserClassQName(),
-						new AbstractMap.SimpleEntry<Class<?>, String>(benchmarkClass, classFormula));
+						new AbstractMap.SimpleEntry<>(benchmarkClass, classFormula));
 			}
 
 			String methodName = benchmark.getUsername().substring(benchmark.getUserClassQName().length() + 1);
@@ -81,13 +88,18 @@ public class FormulaExtractor extends AbstractMojo {
 			// Can't call getMethod(), because arguments are not known. Method name is guarantied to
 			// be unique by JMH, but it won't help us here. So loop over all methods and pick the
 			// right one.
-			// TODO: check if this can be simplified
+			// TODO: cache methods array (getMethods() can be slow operation)
 			Method benchmarkMethod = null;
 			for (Method benchmarkClassMethod : benchmarkClass.getMethods()) {
 				if (benchmarkClassMethod.getName().equals(methodName)) {
 					benchmarkMethod = benchmarkClassMethod;
 					break;
 				}
+			}
+			// make sure we found the required method
+			if (benchmarkMethod == null) {
+				getLog().warn("Benchmark method " + methodName + " not found. Skipping.");
+				continue;
 			}
 
 			String methodFormula = null;
@@ -102,11 +114,16 @@ public class FormulaExtractor extends AbstractMojo {
 			} else if (classFormula != null) {
 				formulas.put(benchmarkClass.getCanonicalName() + "." + benchmarkMethod.getName(), classFormula);
 			} else {
-				// no formula for this method -> will not be processed by SPL framework
+				// no formula for this method0.
 			}
 		}
 	}
 
+	/**
+	 * Get current classloader altered with path to compile path of project using this plugin.
+	 *
+	 * @return New classloader.
+	 */
 	private ClassLoader getClassLoader() {
 		ClassLoader currentThreadClassLoader = Thread.currentThread().getContextClassLoader();
 
@@ -124,6 +141,13 @@ public class FormulaExtractor extends AbstractMojo {
 		return urlClassLoader;
 	}
 
+	/**
+	 * Save SPL formulas to file (specified by outputPath private variable).
+	 * Format is line based, each line containing benchmark name, ':', SPL formula.
+	 *
+	 * @throws FileNotFoundException
+	 * @throws UnsupportedEncodingException
+	 */
 	private void saveSPLFormulas() throws FileNotFoundException, UnsupportedEncodingException {
 		PrintWriter writer = new PrintWriter(outputPath, "UTF-8");
 		for (Map.Entry<String, String> methodEntry : formulas.entrySet()) {
@@ -136,6 +160,9 @@ public class FormulaExtractor extends AbstractMojo {
 	}
 }
 
+/**
+ * Output format. Not used here, but required by JMH API.
+ */
 class NullOutputFormat implements OutputFormat {
 	@Override
 	public void iteration(BenchmarkParams benchParams, IterationParams params, int iteration) {}

@@ -25,10 +25,6 @@ For using this plugin goal you need to add these lines into your benchmark proje
             </goals>
         </execution>
     </executions>
-    <configuration>
-        <jmhJar>${project.build.directory}/${uberjar.name}.jar</jmhJar>
-        <resultPath>${project.basedir}/jmh_results</resultPath>
-    </configuration>
 </plugin>
 ```
 
@@ -48,6 +44,18 @@ You can specify these options from command line with property identifier:
 $ mvn clean install -Ddata_saver.revision_id=ver3
 ```
 
+Or in `pom.xml` file like this:
+
+```{.xml}
+   ...
+    </executions>
+    <configuration>
+        <jmhJar>${project.build.directory}/${uberjar.name}.jar</jmhJar>
+        <resultPath>${project.basedir}/jmh_results</resultPath>
+    </configuration>
+    ...
+```
+
 
 ## SPL annotation goal
 
@@ -65,3 +73,17 @@ This goal is used for distribution of _SPLFormula_ annotation for further proces
 </execution>
 ```
 
+
+## SPL formula extractor goal
+
+This goal extracts _SPLFormula_ annotations from project, parses them and saves them into `META-INF/SPLFormulas` file. Default execution phase is _compile_. File format is line based - benchmark name, `:`, SPL formula. 
+
+```{.xml}
+<execution>
+    <id>Parse SPL annotation from sources</id>
+    <phase>compile</phase>
+    <goals>
+        <goal>formula_extractor</goal>
+    </goals>
+</execution>
+```

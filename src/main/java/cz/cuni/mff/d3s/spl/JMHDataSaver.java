@@ -22,10 +22,10 @@ public class JMHDataSaver extends AbstractMojo {
     @Parameter(property = "data_saver.revision_id", defaultValue = "last")
     private String revisionID = "last";
 
-	@Parameter(property = "data_saver.benchmarks_jar", required = true)
+	@Parameter(property = "data_saver.benchmarks_jar", defaultValue = "${project.build.directory}/${uberjar.name}.jar", required = true)
 	private String jmhJar;
 
-	@Parameter(property = "data_saver.result_path", required = true)
+	@Parameter(property = "data_saver.result_path", defaultValue = "${project.basedir}/jmh_results", required = true)
 	private String resultPath;
 
 	@Parameter(property = "data_saver.additional_options", defaultValue = "")
@@ -34,6 +34,7 @@ public class JMHDataSaver extends AbstractMojo {
 	@Parameter(property = "data_saver.skip", defaultValue = "false")
 	private boolean skip = false;
 
+	@Override
     public void execute() throws MojoExecutionException {
 	    if (skip) {
 		    getLog().info("Collecting data skipped by user configuration");
@@ -52,7 +53,7 @@ public class JMHDataSaver extends AbstractMojo {
     }
 
 	private int runJar(String argJar, String argPath, String argId, String argOpts) throws IOException {
-		List<String> args = new ArrayList<String>();
+		List<String> args = new ArrayList<>();
 		args.add("java");
 		args.add("-jar");
 		args.add(argJar);
@@ -70,7 +71,7 @@ public class JMHDataSaver extends AbstractMojo {
 						.directory(new File(System.getProperty("user.dir"))) // current working directory
 						.start();
 
-		int returnCode = 0;
+		int returnCode;
 		while (true) {
 			try {
 				returnCode = p.waitFor();

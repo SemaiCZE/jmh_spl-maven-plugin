@@ -16,7 +16,7 @@ import java.nio.file.Files;
 import static org.apache.maven.plugins.annotations.ResolutionScope.COMPILE_PLUS_RUNTIME;
 
 
-@Mojo(name = "spl_annotation", requiresProject = true, requiresDependencyResolution = COMPILE_PLUS_RUNTIME, defaultPhase = LifecyclePhase.GENERATE_SOURCES)
+@Mojo(name = "spl_annotation", requiresDependencyResolution = COMPILE_PLUS_RUNTIME, defaultPhase = LifecyclePhase.GENERATE_SOURCES)
 public class SPLFormulaGeneration extends AbstractMojo {
 
 	@Parameter(defaultValue = "${project}", required = true)
@@ -34,7 +34,9 @@ public class SPLFormulaGeneration extends AbstractMojo {
 			File finalDir = new File(outputDirectory, "cz/cuni/mff/d3s/spl");
 
 			getLog().info("Creating directory structure '" + finalDir.toString() + "'");
-			finalDir.mkdirs();
+			if (!finalDir.mkdirs()) {
+				getLog().error("Directory structure cannot be created.");
+			}
 
 			getLog().info("Copying 'SPLFormula.java' to '" + finalDir.toString() + "' directory");
 			Files.copy(SPLFormulaStream, new File(finalDir, "SPLFormula.java").toPath());
