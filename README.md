@@ -19,7 +19,6 @@ For using this plugin goal you need to add these lines into your benchmark proje
     <executions>
         <execution>
             <id>Generate data</id>
-            <phase>verify</phase>
             <goals>
                 <goal>data_saver</goal>
             </goals>
@@ -66,7 +65,6 @@ This goal is used for distribution of _SPLFormula_ annotation for further proces
 ```{.xml}
 <execution>
     <id>Provide SPL annotation</id>
-    <phase>generate-sources</phase>
     <goals>
         <goal>spl_annotation</goal>
     </goals>
@@ -81,7 +79,6 @@ This goal extracts _SPLFormula_ annotations from project, parses them and saves 
 ```{.xml}
 <execution>
     <id>Parse SPL annotation from sources</id>
-    <phase>compile</phase>
     <goals>
         <goal>formula_extractor</goal>
     </goals>

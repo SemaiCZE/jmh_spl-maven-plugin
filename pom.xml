@@ -8,9 +8,31 @@
   <packaging>maven-plugin</packaging>
 
   <name>SPL integration into JMH Maven Plugin</name>
+  <description>Plugin for easy collecting data from JMH benchmarks</description>
+  <url>http://d3s.mff.cuni.cz/research/development_awareness/</url>
 
-  <!-- FIXME change it to the project's website -->
-  <url>http://maven.apache.org</url>
+  <licenses>
+    <license>
+      <name>Apache License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <developers>
+    <developer>
+      <name>Petr Stefan</name>
+      <email>ps@stdin.cz</email>
+      <organization>D3S MFF UK</organization>
+      <organizationUrl>http://d3s.mff.cuni.cz/</organizationUrl>
+    </developer>
+  </developers>
+
+  <scm>
+    <connection>scm:git:git://github.com/SemaiCZE/jmh_spl-maven-plugin.git</connection>
+    <developerConnection>scm:git:ssh://github.com/SemaiCZE/jmh_spl-maven-plugin.git</developerConnection>
+    <url>https://github.com/SemaiCZE/jmh_spl-maven-plugin/tree/master</url>
+  </scm>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
