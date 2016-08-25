@@ -19,8 +19,8 @@ import java.util.List;
 @Mojo(name = "data_saver", defaultPhase = LifecyclePhase.VERIFY)
 public class JMHDataSaver extends AbstractMojo {
 
-    @Parameter(property = "data_saver.revision_id", defaultValue = "last")
-    private String revisionID = "last";
+	@Parameter(property = "data_saver.revision_id", defaultValue = "last")
+	private String revisionID = "last";
 
 	@Parameter(property = "data_saver.benchmarks_jar", defaultValue = "${project.build.directory}/${uberjar.name}.jar", required = true)
 	private String jmhJar;
@@ -35,22 +35,22 @@ public class JMHDataSaver extends AbstractMojo {
 	private boolean skip = false;
 
 	@Override
-    public void execute() throws MojoExecutionException {
-	    if (skip) {
-		    getLog().info("Collecting data skipped by user configuration");
-		    return;
-	    }
+	public void execute() throws MojoExecutionException {
+		if (skip) {
+			getLog().info("Collecting data skipped by user configuration");
+			return;
+		}
 
-	    try {
-		    getLog().info("Collecting data from '" + jmhJar + "' to '" + resultPath +
-				    "' with revision '" + revisionID + "' ...");
-		    prepareDir(resultPath);
-		    runJar(jmhJar, resultPath, revisionID, additionalOpts);
-		    getLog().info("Data successfully saved");
-	    } catch (IOException e) {
-		    getLog().error(e.getMessage());
-	    }
-    }
+		try {
+			getLog().info("Collecting data from '" + jmhJar + "' to '" + resultPath +
+					"' with revision '" + revisionID + "' ...");
+			prepareDir(resultPath);
+			runJar(jmhJar, resultPath, revisionID, additionalOpts);
+			getLog().info("Data successfully saved");
+		} catch (IOException e) {
+			getLog().error(e.getMessage());
+		}
+	}
 
 	private int runJar(String argJar, String argPath, String argId, String argOpts) throws IOException {
 		List<String> args = new ArrayList<>();
