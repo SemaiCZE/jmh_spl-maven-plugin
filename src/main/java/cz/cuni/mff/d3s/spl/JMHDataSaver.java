@@ -8,8 +8,10 @@ import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -19,8 +21,8 @@ import java.util.List;
 @Mojo(name = "data_saver", defaultPhase = LifecyclePhase.VERIFY)
 public class JMHDataSaver extends AbstractMojo {
 
-    @Parameter(property = "data_saver.revision_id", defaultValue = "last")
-    private String revisionID = "last";
+	@Parameter(property = "data_saver.revision_id", defaultValue = "")
+	private String revisionID = "";
 
 	@Parameter(property = "data_saver.benchmarks_jar", defaultValue = "${project.build.directory}/${uberjar.name}.jar", required = true)
 	private String jmhJar;
@@ -35,22 +37,23 @@ public class JMHDataSaver extends AbstractMojo {
 	private boolean skip = false;
 
 	@Override
-    public void execute() throws MojoExecutionException {
-	    if (skip) {
-		    getLog().info("Collecting data skipped by user configuration");
-		    return;
-	    }
+	public void execute() throws MojoExecutionException {
+		if (skip) {
+			getLog().info("Collecting data skipped by user configuration");
+			return;
+		}
 
-	    try {
-		    getLog().info("Collecting data from '" + jmhJar + "' to '" + resultPath +
-				    "' with revision '" + revisionID + "' ...");
-		    prepareDir(resultPath);
-		    runJar(jmhJar, resultPath, revisionID, additionalOpts);
-		    getLog().info("Data successfully saved");
-	    } catch (IOException e) {
-		    getLog().error(e.getMessage());
-	    }
-    }
+		try {
+			fillRevisionId();
+			getLog().info("Collecting data from '" + jmhJar + "' to '" + resultPath +
+					"' with revision '" + revisionID + "' ...");
+			prepareDir(resultPath);
+			runJar(jmhJar, resultPath, revisionID, additionalOpts);
+			getLog().info("Data successfully saved");
+		} catch (IOException e) {
+			getLog().error(e.getMessage());
+		}
+	}
 
 	private int runJar(String argJar, String argPath, String argId, String argOpts) throws IOException {
 		List<String> args = new ArrayList<>();
@@ -71,17 +74,7 @@ public class JMHDataSaver extends AbstractMojo {
 						.directory(new File(System.getProperty("user.dir"))) // current working directory
 						.start();
 
-		int returnCode;
-		while (true) {
-			try {
-				returnCode = p.waitFor();
-				break;
-			} catch (InterruptedException e) {
-				continue;
-			}
-		}
-
-		return returnCode;
+		return waitForExitCode(p);
 	}
 
 	private void prepareDir(String argPath) throws IOException {
@@ -92,5 +85,43 @@ public class JMHDataSaver extends AbstractMojo {
 				throw new IOException("Creation of directory " + argPath + " failed.");
 			}
 		}
+	}
+
+	private void fillRevisionId() {
+		if (revisionID.isEmpty()) {
+			revisionID = "last";
+			try {
+				Process commitProc = new ProcessBuilder("git", "rev-parse", "HEAD")
+						.directory(new File(System.getProperty("user.dir"))).start();
+				String commit = runProcessWithOutput(commitProc);
+				String timestamp = Long.toString(System.currentTimeMillis() / 1000L);
+				if (commit != null && !commit.isEmpty()) {
+					revisionID = String.format("%1$s-%2$s", timestamp, commit);
+				}
+			} catch (Exception ignored) {
+			}
+		}
+	}
+
+	private String runProcessWithOutput(Process p) throws IOException {
+		String outputLine = "";
+		BufferedReader is = new BufferedReader(new InputStreamReader(p.getInputStream()));
+		outputLine = is.readLine();
+
+		waitForExitCode(p);
+		return outputLine;
+	}
+
+	private int waitForExitCode(Process p) {
+		int returnCode;
+		while (true) {
+			try {
+				returnCode = p.waitFor();
+				break;
+			} catch (InterruptedException e) {
+				continue;
+			}
+		}
+		return returnCode;
 	}
 }
