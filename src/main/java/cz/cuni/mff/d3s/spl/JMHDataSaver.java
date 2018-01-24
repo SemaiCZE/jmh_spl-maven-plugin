@@ -27,7 +27,7 @@ public class JMHDataSaver extends AbstractMojo {
 	@Parameter(property = "data_saver.benchmarks_jar", defaultValue = "${project.build.directory}/${uberjar.name}.jar", required = true)
 	private String jmhJar;
 
-	@Parameter(property = "data_saver.result_path", defaultValue = "${project.basedir}/jmh_results", required = true)
+	@Parameter(property = "data_saver.result_path", defaultValue = "${project.basedir}/jmh_results/data", required = true)
 	private String resultPath;
 
 	@Parameter(property = "data_saver.additional_options", defaultValue = "")

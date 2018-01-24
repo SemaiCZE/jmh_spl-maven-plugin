@@ -6,6 +6,7 @@ import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
+import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.openjdk.jmh.infra.BenchmarkParams;
 import org.openjdk.jmh.infra.IterationParams;
 import org.openjdk.jmh.results.BenchmarkResult;
@@ -23,10 +24,11 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.*;
 
-@Mojo(name = "formula_extractor", defaultPhase = LifecyclePhase.COMPILE)
+@Mojo(name = "formula_extractor", defaultPhase = LifecyclePhase.COMPILE, requiresDependencyResolution = ResolutionScope.RUNTIME)
 public class FormulaExtractor extends AbstractMojo {
 	private final String outputPath = "target/classes/META-INF/SPLFormulas";
 	private Map<String, String> formulas;
+
 	/**
 	 * Cache - for fully qualified class name is cached instance of Class class
 	 * and it's SPL formula (null if not present).
@@ -39,7 +41,7 @@ public class FormulaExtractor extends AbstractMojo {
 	}
 
 	@Override
-	public void execute() throws MojoExecutionException, MojoFailureException {
+	public void execute() {
 		try {
 			getSPLFormulas();
 			saveSPLFormulas();
@@ -56,7 +58,7 @@ public class FormulaExtractor extends AbstractMojo {
 	 * @throws ClassNotFoundException
 	 * @throws NoSuchMethodException
 	 */
-	private void getSPLFormulas() throws ClassNotFoundException, NoSuchMethodException {
+	private void getSPLFormulas() throws ClassNotFoundException {
 		Set<BenchmarkListEntry> benchmarks = BenchmarkList
 				.fromFile("target/classes/META-INF/BenchmarkList")
 				.getAll(new NullOutputFormat(), new LinkedList<>());
@@ -67,12 +69,20 @@ public class FormulaExtractor extends AbstractMojo {
 			// lookup to cache for class of this name
 			Class benchmarkClass;
 			String classFormula;
+			String methodName = benchmark.getUsername().substring(benchmark.getUserClassQName().length() + 1);
+
 			if (classCache.containsKey(benchmark.getUserClassQName())) {
 				Map.Entry<Class<?>, String> classInfo = classCache.get(benchmark.getUserClassQName());
 				benchmarkClass = classInfo.getKey();
 				classFormula = classInfo.getValue();
 			} else {
-				benchmarkClass = Class.forName(benchmark.getUserClassQName(), true, alteredClassLoader);
+				try {
+					benchmarkClass = Class.forName(benchmark.getUserClassQName(), true, alteredClassLoader);
+				} catch (NoClassDefFoundError ignored) {
+					getLog().warn("Benchmark class " + benchmark.getUserClassQName() + " for method " +
+							methodName + " could not be initialized. No SPL formulas are saved for this method.");
+					continue;
+				}
 				classFormula = null;
 				if (benchmarkClass.isAnnotationPresent(SPLFormula.class)) {
 					Annotation SPLAnnotation = benchmarkClass.getAnnotation(SPLFormula.class);
@@ -82,8 +92,6 @@ public class FormulaExtractor extends AbstractMojo {
 				classCache.put(benchmark.getUserClassQName(),
 						new AbstractMap.SimpleEntry<>(benchmarkClass, classFormula));
 			}
-
-			String methodName = benchmark.getUsername().substring(benchmark.getUserClassQName().length() + 1);
 
 			// Can't call getMethod(), because arguments are not known. Method name is guarantied to
 			// be unique by JMH, but it won't help us here. So loop over all methods and pick the
