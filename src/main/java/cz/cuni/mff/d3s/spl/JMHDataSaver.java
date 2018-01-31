@@ -36,6 +36,9 @@ public class JMHDataSaver extends AbstractMojo {
 	@Parameter(property = "data_saver.skip", defaultValue = "false")
 	private boolean skip = false;
 
+	private String dirName = "";
+	private String fileName = "";
+
 	@Override
 	public void execute() throws MojoExecutionException {
 		if (skip) {
@@ -44,11 +47,12 @@ public class JMHDataSaver extends AbstractMojo {
 		}
 
 		try {
-			fillRevisionId();
+			fillInitialValues();
 			getLog().info("Collecting data from '" + jmhJar + "' to '" + resultPath +
-					"' with revision '" + revisionID + "' ...");
-			prepareDir(resultPath);
-			runJar(jmhJar, resultPath, revisionID, additionalOpts);
+					"' with version '" + dirName + "', file '" + fileName + "' ...");
+			String finalPath = Paths.get(resultPath, dirName).toString();
+			prepareDir(finalPath);
+			runJar(jmhJar, finalPath, fileName, additionalOpts);
 			getLog().info("Data successfully saved");
 		} catch (IOException e) {
 			getLog().error(e.getMessage());
@@ -87,19 +91,53 @@ public class JMHDataSaver extends AbstractMojo {
 		}
 	}
 
-	private void fillRevisionId() {
-		if (revisionID.isEmpty()) {
-			revisionID = "last";
-			try {
-				Process commitProc = new ProcessBuilder("git", "rev-parse", "HEAD")
-						.directory(new File(System.getProperty("user.dir"))).start();
-				String commit = runProcessWithOutput(commitProc);
-				String timestamp = Long.toString(System.currentTimeMillis() / 1000L);
-				if (commit != null && !commit.isEmpty()) {
-					revisionID = String.format("%1$s-%2$s", timestamp, commit);
-				}
-			} catch (Exception ignored) {
+	private void fillInitialValues() {
+		// file name is always a current unix timestamp
+		String timestamp = Long.toString(System.currentTimeMillis() / 1000L);
+		fileName = String.format("%1$s.json", timestamp);
+
+		// when revision is explicitly specified, use that name
+		if (!revisionID.isEmpty()) {
+			dirName = revisionID;
+			return;
+		}
+
+		// if revision is not specified, try to get info from Git
+		try {
+			// check if git repository is dirty
+			Process dirtyProc = new ProcessBuilder("git", "diff-index", "--quiet", "HEAD", "--")
+					.directory(new File(System.getProperty("user.dir"))).start();
+			boolean isDirty = waitForExitCode(dirtyProc) == 1;
+
+			// get last commit ID
+			Process commitProc = new ProcessBuilder("git", "rev-parse", "HEAD")
+					.directory(new File(System.getProperty("user.dir"))).start();
+			String commit = runProcessWithOutput(commitProc);
+
+			// if commit is broken, use default
+			if (commit == null || commit.isEmpty()) {
+				commit = "default";
 			}
+
+			// get last commit timestamp
+			Process timeProc = new ProcessBuilder("git", "show", "-s", "--format=%ct", commit)
+					.directory(new File(System.getProperty("user.dir"))).start();
+			String commitTime = runProcessWithOutput(timeProc);
+
+			// if commitTime is broken, use current timestamp
+			if (commitTime == null || commitTime.isEmpty()) {
+				commitTime = timestamp;
+			}
+
+			// fill the directory name whenever tree is dirty or not
+			if (isDirty) {
+				dirName = String.format("%1$s-%2$s-dirty", commitTime, commit);
+			} else {
+				dirName = String.format("%1$s-%2$s", commitTime, commit);
+			}
+		} catch (IOException ignored) {
+			// no Git support, use default with timestamp
+			dirName = String.format("%1$s-default", timestamp);
 		}
 	}
 

@@ -2,11 +2,8 @@ package cz.cuni.mff.d3s.spl;
 
 
 import org.apache.maven.plugin.AbstractMojo;
-import org.apache.maven.plugin.MojoExecutionException;
-import org.apache.maven.plugin.MojoFailureException;
-import org.apache.maven.plugins.annotations.LifecyclePhase;
-import org.apache.maven.plugins.annotations.Mojo;
-import org.apache.maven.plugins.annotations.ResolutionScope;
+import org.apache.maven.plugins.annotations.*;
+import org.apache.maven.project.MavenProject;
 import org.openjdk.jmh.infra.BenchmarkParams;
 import org.openjdk.jmh.infra.IterationParams;
 import org.openjdk.jmh.results.BenchmarkResult;
@@ -19,14 +16,20 @@ import org.openjdk.jmh.runner.format.OutputFormat;
 import java.io.*;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.*;
 
 @Mojo(name = "formula_extractor", defaultPhase = LifecyclePhase.COMPILE, requiresDependencyResolution = ResolutionScope.RUNTIME)
 public class FormulaExtractor extends AbstractMojo {
-	private final String outputPath = "target/classes/META-INF/SPLFormulas";
+
+	@Parameter(property = "project.build.outputDirectory")
+	private String buildDirectory;
+
+	@Component
+	private MavenProject project;
+
+	private final String outputPathSuffix = "/META-INF/SPLFormulas";
 	private Map<String, String> formulas;
 
 	/**
@@ -56,11 +59,10 @@ public class FormulaExtractor extends AbstractMojo {
 	 * benchmarks).
 	 *
 	 * @throws ClassNotFoundException
-	 * @throws NoSuchMethodException
 	 */
 	private void getSPLFormulas() throws ClassNotFoundException {
 		Set<BenchmarkListEntry> benchmarks = BenchmarkList
-				.fromFile("target/classes/META-INF/BenchmarkList")
+				.fromFile(buildDirectory + "/META-INF/BenchmarkList")
 				.getAll(new NullOutputFormat(), new LinkedList<>());
 
 		ClassLoader alteredClassLoader = getClassLoader();
@@ -117,14 +119,19 @@ public class FormulaExtractor extends AbstractMojo {
 				methodFormula = formula.value();
 			}
 
+			String fullName = benchmarkClass.getCanonicalName() + "." + benchmarkMethod.getName();
 			if (methodFormula != null) {
-				formulas.put(benchmarkClass.getCanonicalName() + "." + benchmarkMethod.getName(), methodFormula);
+				formulas.put(fullName, methodFormula);
+				getLog().info("Found method formula '" + methodFormula + "' for '" + fullName + "'");
 			} else if (classFormula != null) {
-				formulas.put(benchmarkClass.getCanonicalName() + "." + benchmarkMethod.getName(), classFormula);
+				formulas.put(fullName, classFormula);
+				getLog().info("Found class formula '" + classFormula + "' for '" + fullName + "'");
 			} else {
 				// no formula for this method0.
 			}
 		}
+
+		getLog().info("Total SPL formulas found: " + formulas.size());
 	}
 
 	/**
@@ -137,13 +144,18 @@ public class FormulaExtractor extends AbstractMojo {
 
 		// Add the dir with compiled classes to the classpath
 		// Chain the current thread classloader
-		URLClassLoader urlClassLoader = null;
+		ClassLoader urlClassLoader = currentThreadClassLoader;
 		try {
-			urlClassLoader = new URLClassLoader(
-					new URL[]{new File("target/classes/").toURI().toURL()},
+			List<String> runtimeClasspathElements = project.getRuntimeClasspathElements();
+			List<URL> runtimeUrls = new ArrayList<>();
+			for (String classpathElement : runtimeClasspathElements) {
+				runtimeUrls.add(new File(classpathElement).toURI().toURL());
+			}
+			runtimeUrls.add(new File(buildDirectory).toURI().toURL());
+			urlClassLoader = new URLClassLoader(runtimeUrls.toArray(new URL[] {}),
 					currentThreadClassLoader);
-		} catch (MalformedURLException e) {
-			// not happened
+		} catch (Exception e) {
+			getLog().error("Error altering classpath: " + e.getMessage());
 		}
 
 		return urlClassLoader;
@@ -152,12 +164,9 @@ public class FormulaExtractor extends AbstractMojo {
 	/**
 	 * Save SPL formulas to file (specified by outputPath private variable).
 	 * Format is line based, each line containing benchmark name, ':', SPL formula.
-	 *
-	 * @throws FileNotFoundException
-	 * @throws UnsupportedEncodingException
 	 */
 	private void saveSPLFormulas() throws FileNotFoundException, UnsupportedEncodingException {
-		PrintWriter writer = new PrintWriter(outputPath, "UTF-8");
+		PrintWriter writer = new PrintWriter(buildDirectory + outputPathSuffix, "UTF-8");
 		for (Map.Entry<String, String> methodEntry : formulas.entrySet()) {
 			writer.write(methodEntry.getKey());
 			writer.write(":");
