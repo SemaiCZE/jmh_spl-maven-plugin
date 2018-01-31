@@ -36,6 +36,9 @@ public class JMHDataSaver extends AbstractMojo {
 	@Parameter(property = "data_saver.skip", defaultValue = "false")
 	private boolean skip = false;
 
+	@Parameter(property = "basedir")
+	private String basedir;
+
 	private String dirName = "";
 	private String fileName = "";
 
@@ -106,12 +109,12 @@ public class JMHDataSaver extends AbstractMojo {
 		try {
 			// check if git repository is dirty
 			Process dirtyProc = new ProcessBuilder("git", "diff-index", "--quiet", "HEAD", "--")
-					.directory(new File(System.getProperty("user.dir"))).start();
+					.directory(new File(basedir)).start();
 			boolean isDirty = waitForExitCode(dirtyProc) == 1;
 
 			// get last commit ID
 			Process commitProc = new ProcessBuilder("git", "rev-parse", "HEAD")
-					.directory(new File(System.getProperty("user.dir"))).start();
+					.directory(new File(basedir)).start();
 			String commit = runProcessWithOutput(commitProc);
 
 			// if commit is broken, use default
@@ -121,7 +124,7 @@ public class JMHDataSaver extends AbstractMojo {
 
 			// get last commit timestamp
 			Process timeProc = new ProcessBuilder("git", "show", "-s", "--format=%ct", commit)
-					.directory(new File(System.getProperty("user.dir"))).start();
+					.directory(new File(basedir)).start();
 			String commitTime = runProcessWithOutput(timeProc);
 
 			// if commitTime is broken, use current timestamp
