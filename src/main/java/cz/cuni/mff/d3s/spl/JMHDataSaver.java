@@ -134,13 +134,13 @@ public class JMHDataSaver extends AbstractMojo {
 
 			// fill the directory name whenever tree is dirty or not
 			if (isDirty) {
-				dirName = String.format("%1$s-%2$s-dirty", commitTime, commit);
+				dirName = String.format("v-%1$s-%2$s-dirty", commitTime, commit);
 			} else {
-				dirName = String.format("%1$s-%2$s", commitTime, commit);
+				dirName = String.format("v-%1$s-%2$s", commitTime, commit);
 			}
 		} catch (IOException ignored) {
 			// no Git support, use default with timestamp
-			dirName = String.format("%1$s-default", timestamp);
+			dirName = String.format("v-%1$s-default", timestamp);
 		}
 	}
 
