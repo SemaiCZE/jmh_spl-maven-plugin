@@ -23,10 +23,10 @@ import java.nio.channels.FileChannel;
 @Mojo(name = "evaluator_fetcher", defaultPhase = LifecyclePhase.VERIFY)
 public class EvaluatorFetcher extends AbstractMojo {
 
-	@Parameter(property = "evaluator_fetcher.save_dir", defaultValue = "${project.basedir}/jmh_results", required = true)
+	@Parameter(property = "evaluator_fetcher.save_dir", defaultValue = "${project.basedir}/measurements", required = true)
 	private String evaluatorSaveDir;
 
-	@Parameter(property = "evaluator_fetcher.version", defaultValue = "1.0.2", required = true)
+	@Parameter(property = "evaluator_fetcher.version", defaultValue = "1.0.3", required = true)
 	private String evaluatorVersion;
 
 	private String artifactId = "spl-evaluation-java";

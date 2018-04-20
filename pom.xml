@@ -4,7 +4,7 @@
 
   <groupId>cz.cuni.mff.d3s.spl</groupId>
   <artifactId>jmh_spl-maven-plugin</artifactId>
-  <version>1.0.2</version>
+  <version>1.0.3</version>
   <packaging>maven-plugin</packaging>
 
   <name>SPL integration into JMH Maven Plugin</name>
