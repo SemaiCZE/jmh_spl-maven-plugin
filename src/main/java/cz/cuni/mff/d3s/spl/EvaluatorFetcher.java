@@ -37,6 +37,7 @@ public class EvaluatorFetcher extends AbstractMojo {
 	public void execute() {
 		String jarName = String.format("%1$s/%2$s-%3$s.jar", evaluatorSaveDir, artifactId, evaluatorVersion);
 		File outputFile = new File(jarName);
+		outputFile.getParentFile().mkdirs();
 		if(outputFile.exists() && !outputFile.isDirectory()) {
 			getLog().info("File " + jarName + " already exists.");
 			return;
