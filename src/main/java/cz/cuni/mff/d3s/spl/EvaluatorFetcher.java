@@ -26,7 +26,7 @@ public class EvaluatorFetcher extends AbstractMojo {
 	@Parameter(property = "evaluator_fetcher.save_dir", defaultValue = "${project.basedir}/measurements", required = true)
 	private String evaluatorSaveDir;
 
-	@Parameter(property = "evaluator_fetcher.version", defaultValue = "1.0.3", required = true)
+	@Parameter(property = "evaluator_fetcher.version", defaultValue = "1.0.4", required = true)
 	private String evaluatorVersion;
 
 	private String artifactId = "spl-evaluation-java";
